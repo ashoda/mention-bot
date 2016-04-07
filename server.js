@@ -17,6 +17,11 @@ var mentionBot = require('./mention-bot.js');
 var messageGenerator = require('./message.js');
 var util = require('util');
 
+var Slack = require('nodeslack');
+
+var slack = new Slack(process.env.WEBHOOK_URL);
+var slackUsers = JSON.parse(process.env.SLACK_USERS);
+
 var GitHubApi = require('github');
 
 var CONFIG_PATH = '.mention-bot';
@@ -166,6 +171,21 @@ async function work(body) {
     console.log('Skipping because there are no reviewers found.');
     return;
   }
+
+  reviewers.forEach(function(reviewer){
+    var slackUser = slackUsers[reviewer]
+    var message = 'By analyzing the blame information on this pull request' +
+      'we identified you to be a potential reviewer' +
+      data.repository.html_url + '/pull/' + data.pull_request.number
+
+    slack.send({
+      channel: "#prmentionbot",
+      username: "webhookbot",
+      channel: slackUser,
+      text: message,
+      icon_emoji: ":ghostgabe:"
+    })
+  })
 
   github.issues.createComment({
     user: data.repository.owner.login, // 'fbsamples'
